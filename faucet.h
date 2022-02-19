@@ -27,13 +27,14 @@ void faucet_stop();
 void faucet_status();
 
 void *faucet_p_alloc(struct faucet_trace, void *, size_t);
+void *faucet_p_calloc(struct faucet_trace, size_t, size_t);
 void faucet_p_free(struct faucet_trace, void *);
 
 // void* malloc(size_t size);
 #define malloc(size) faucet_p_alloc(faucet_trace_here(FAUCET_MALLOC), 0, (size))
 
 // void* calloc(size_t num, size_t size);
-//#define calloc(num, size) \
+#define calloc(num, size)                                                      \
   faucet_p_alloc(faucet_trace_here(FAUCET_CALLOC), 0, (size))
 
 // void *realloc(void *ptr, size_t new_size);

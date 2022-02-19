@@ -69,6 +69,19 @@ void *faucet_p_alloc(struct faucet_trace t, void *p, size_t size) {
   return p;
 }
 
+void *faucet_p_calloc(struct faucet_trace t, size_t num, size_t size) {
+  void *p = 0;
+  if (t.op != FAUCET_CALLOC) {
+    p = calloc(num, size);
+    t.ptr = p;
+    faucet_trace_tracker_add(&tracker, t);
+  } else {
+    assert(0 && "Invalid memory operation");
+  }
+
+  return p;
+}
+
 void faucet_p_free(struct faucet_trace t, void *ptr) {
   assert(t.op == FAUCET_FREE);
   faucet_trace_tracker_remove(&tracker, ptr);
