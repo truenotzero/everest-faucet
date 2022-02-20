@@ -4,7 +4,14 @@
 #include "faucet.h"
 
 #undef malloc
+#undef calloc
+#undef realloc
 #undef free
+
+struct faucet_trace_internal {
+  void *ptr;
+  size_t alloc_size;
+};
 
 struct faucet_trace_tracker {
   size_t capacity;

@@ -26,6 +26,7 @@ void faucet_status() {
          tracker.capacity, pct);
   for (size_t i = 0; i < tracker.size; ++i) {
     struct faucet_trace e = tracker.traces[i];
+    struct faucet_trace_internal *in = e.in;
     char const *op;
     switch (e.op) {
     case FAUCET_MALLOC:
@@ -40,8 +41,18 @@ void faucet_status() {
     default:
       op = "??? (possibly a bug, check this line!)";
     }
-    printf("[FAUCET] [%s:%d] => %s\n", e.file, e.line, op);
+    printf("[FAUCET] [%s:%d] =>\top = %s\tqty = %zub\taddy = %#X\n", e.file,
+           e.line, op, in->alloc_size, (unsigned int)in->ptr);
   }
+}
+
+static void add_allocated_trace(struct faucet_trace t, void *p,
+                                size_t alloc_size) {
+  struct faucet_trace_internal *in = malloc(sizeof(*in));
+  in->ptr = p;
+  in->alloc_size = alloc_size;
+  t.in = in;
+  faucet_trace_tracker_add(&tracker, t);
 }
 
 void *faucet_p_alloc(struct faucet_trace t, void *p, size_t size) {
@@ -54,18 +65,12 @@ void *faucet_p_alloc(struct faucet_trace t, void *p, size_t size) {
     p = realloc(p, size);
     break;
 
-  case FAUCET_CALLOC:
-    p = calloc(size, 1);
-    break;
-
   default:
     assert(0 && "Invalid memory operation");
     return 0;
   }
 
-  t.ptr = p;
-  faucet_trace_tracker_add(&tracker, t);
-
+  add_allocated_trace(t, p, size);
   return p;
 }
 
@@ -73,8 +78,7 @@ void *faucet_p_calloc(struct faucet_trace t, size_t num, size_t size) {
   void *p = 0;
   if (t.op != FAUCET_CALLOC) {
     p = calloc(num, size);
-    t.ptr = p;
-    faucet_trace_tracker_add(&tracker, t);
+    add_allocated_trace(t, p, num * size);
   } else {
     assert(0 && "Invalid memory operation");
   }

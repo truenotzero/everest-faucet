@@ -34,11 +34,13 @@ void faucet_trace_tracker_remove(struct faucet_trace_tracker *tt, void *ptr) {
 
   // find the trace related to the given pointer
   for (size_t i = 0; i < tt->size; ++i) {
-    if (tt->traces[i].ptr == ptr) {
+    struct faucet_trace_internal *in = tt->traces[i].in;
+    if (in->ptr == ptr) {
       // take the last element of the array
       // and place it at this index
       tt->traces[i] = tt->traces[tt->size - 1];
       tt->size -= 1;
+      free(in);
       return;
     }
   }

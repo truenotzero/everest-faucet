@@ -11,11 +11,11 @@ enum faucet_memory_op {
 };
 
 struct faucet_trace {
-  void *ptr;
-
   char const *file;
   unsigned int line;
   enum faucet_memory_op op;
+
+  void *in;
 };
 
 enum faucet_options {
