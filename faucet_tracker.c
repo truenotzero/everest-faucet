@@ -1,9 +1,16 @@
 #include "faucet_internal.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static void error(char const *c) { fprintf(stderr, "%s\n", c); }
+static void error(char const *c, ...) {
+  va_list list;
+  va_start(list, c);
+  vfprintf(stderr, c, list);
+  fprintf(stderr, "\n");
+  va_end(list);
+}
 
 struct faucet_trace_tracker
 faucet_trace_tracker_init(struct faucet_trace *trace_storage, size_t capacity) {
@@ -25,7 +32,11 @@ void faucet_trace_tracker_add(struct faucet_trace_tracker *tt,
   tt->size += 1;
 }
 
-void faucet_trace_tracker_remove(struct faucet_trace_tracker *tt, void *ptr) {
+void faucet_trace_tracker_remove(struct faucet_trace_tracker *tt,
+                                 struct faucet_trace t, void *ptr) {
+  if (!ptr) {
+    return;
+  }
   if (tt->size < 0) {
     // force a crash if there are no traces
     error("[FAUCET] faucet_trace_tracker_remove: No traces to remove");
@@ -46,6 +57,7 @@ void faucet_trace_tracker_remove(struct faucet_trace_tracker *tt, void *ptr) {
   }
 
   // no trace found, force a crash
-  abort();
   error("[FAUCET] faucet_trace_tracker_remove: Tried freeing untracked trace");
+  error("[FAUCET] [%s:%zu] => problematic free()\n", t.file, t.line);
+  abort();
 }

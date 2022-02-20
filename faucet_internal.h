@@ -23,6 +23,7 @@ struct faucet_trace_tracker faucet_trace_tracker_init(struct faucet_trace *,
                                                       size_t);
 void faucet_trace_tracker_add(struct faucet_trace_tracker *,
                               struct faucet_trace);
-void faucet_trace_tracker_remove(struct faucet_trace_tracker *, void *);
+void faucet_trace_tracker_remove(struct faucet_trace_tracker *,
+                                 struct faucet_trace, void *);
 
 #endif // FAUCET_INTERNAL_H_

@@ -151,6 +151,6 @@ void *faucet_p_calloc(struct faucet_trace t, size_t num, size_t size) {
 
 void faucet_p_free(struct faucet_trace t, void *ptr) {
   assert(t.op == FAUCET_FREE);
-  faucet_trace_tracker_remove(&tracker, ptr);
+  faucet_trace_tracker_remove(&tracker, t, ptr);
   free(ptr);
 }
