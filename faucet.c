@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 static struct faucet_trace_tracker tracker;
+static enum faucet_options options;
 
 void faucet_start(enum faucet_options o) {
 #ifndef FAUCET_MAX_TRACES
@@ -12,6 +13,7 @@ void faucet_start(enum faucet_options o) {
 #endif
   static struct faucet_trace traces[FAUCET_MAX_TRACES];
   tracker = faucet_trace_tracker_init(traces, FAUCET_MAX_TRACES);
+  options = o;
 }
 
 void faucet_stop() {
@@ -19,30 +21,91 @@ void faucet_stop() {
   faucet_status();
 }
 
+struct si_byte {
+  float scalar;
+  char prefix;
+};
+
+struct si_byte do_si_byte(size_t b) {
+  char const units[] = {
+      'k',
+      'M',
+  };
+  char u = '\0';
+  float f = b;
+  for (size_t i = 0; i < sizeof(units); ++i) {
+    if (f / 1024 < 1) {
+      break;
+    }
+
+    u = units[i];
+    f /= 1024;
+  }
+
+  return (struct si_byte){
+      .scalar = f,
+      .prefix = u,
+  };
+}
+
 void faucet_status() {
-  printf("[FAUCET] Memory status log:\n");
-  float pct = (float)tracker.size / tracker.capacity;
-  printf("[FAUCET] Active traces: %zu/%zu (%02.2f%%)\n", tracker.size,
-         tracker.capacity, pct);
+  printf("[FAUCET] Tracing active allocations...\n");
+  if (options & (FAUCET_OPTION_LOG_NUM_TRACES | FAUCET_OPTION_LOG_PCT_TRACES)) {
+    printf("[FAUCET] Active traces: ");
+    if (options & FAUCET_OPTION_LOG_NUM_TRACES) {
+      printf("%zu/%zu ", tracker.size, tracker.capacity);
+    }
+    if (options & FAUCET_OPTION_LOG_PCT_TRACES) {
+      printf("(%02.2f%%)", (float)tracker.size / tracker.capacity);
+    }
+    printf("\n");
+  }
+
+  size_t total_leaked = 0;
+
   for (size_t i = 0; i < tracker.size; ++i) {
     struct faucet_trace e = tracker.traces[i];
     struct faucet_trace_internal *in = e.in;
-    char const *op;
-    switch (e.op) {
-    case FAUCET_MALLOC:
-      op = "malloc";
-      break;
-    case FAUCET_CALLOC:
-      op = "calloc";
-      break;
-    case FAUCET_REALLOC:
-      op = "realloc";
-      break;
-    default:
-      op = "??? (possibly a bug, check this line!)";
+    printf("[FAUCET] [%s:%d] ", e.file, e.line);
+
+    total_leaked += in->alloc_size;
+
+    if (options) {
+      printf(" =>\t");
     }
-    printf("[FAUCET] [%s:%d] =>\top = %s\tqty = %zub\taddy = %#X\n", e.file,
-           e.line, op, in->alloc_size, (unsigned int)in->ptr);
+
+    if (options & FAUCET_OPTION_LOG_OP) {
+      char const *op;
+      switch (e.op) {
+      case FAUCET_MALLOC:
+        op = "malloc";
+        break;
+      case FAUCET_CALLOC:
+        op = "calloc";
+        break;
+      case FAUCET_REALLOC:
+        op = "realloc";
+        break;
+      default:
+        op = "??? (possibly a bug, check this line!)";
+      }
+      printf("op = %s\t", op);
+    }
+
+    if (options & FAUCET_OPTION_LOG_ALLOC_SIZE) {
+      struct si_byte b = do_si_byte(in->alloc_size);
+      printf("qty = %.2f%cb\t", b.scalar, b.prefix);
+    }
+
+    if (options & FAUCET_OPTION_LOG_ADDRESS) {
+      printf("addy = %#X\t", (unsigned int)in->ptr);
+    }
+    printf("\n");
+  }
+
+  if (options & FAUCET_OPTION_LOG_TOTAL_MEM_LEAKED) {
+    struct si_byte b = do_si_byte(total_leaked);
+    printf("[FAUCET] Total memory leaked: %.2f%c\n", b.scalar, b.prefix);
   }
 }
 

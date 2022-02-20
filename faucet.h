@@ -19,7 +19,15 @@ struct faucet_trace {
 };
 
 enum faucet_options {
-  FAUCET_OPTION_DEFAULT = 0,
+  FAUCET_OPTION_LOG_OP = 0x01,
+  FAUCET_OPTION_LOG_ALLOC_SIZE = 0x02,
+  FAUCET_OPTION_LOG_ADDRESS = 0x04,
+  FAUCET_OPTION_LOG_NUM_TRACES = 0x08,
+  FAUCET_OPTION_LOG_PCT_TRACES = 0x10,
+  FAUCET_OPTION_LOG_TOTAL_MEM_LEAKED = 0x20,
+
+  FAUCET_OPTION_NONE = 0x00,
+  FAUCET_OPTION_ALL = ~0,
 };
 
 void faucet_start(enum faucet_options);
